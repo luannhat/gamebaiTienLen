@@ -1,22 +1,33 @@
 <?php
-session_start();
-$data = json_decode(file_get_contents("php://input"), true);
-$index = $data['index'];
+header('Content-Type: application/json');
 
-if (!isset($_SESSION['player'][$index])) {
-    echo json_encode(['message' => 'Lá bài không hợp lệ.', 'reload' => false]);
-    exit;
+function createDeck() {
+    $suits = ['♠', '♣', '♦', '♥'];
+    $values = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
+    $deck = [];
+
+    foreach ($suits as $suit) {
+        foreach ($values as $value) {
+            $deck[] = ['value' => $value, 'suit' => $suit];
+        }
+    }
+
+    shuffle($deck);
+    return $deck;
 }
 
-// Lấy bài người chơi đánh
-$card = $_SESSION['player'][$index];
-unset($_SESSION['player'][$index]);
-$_SESSION['player'] = array_values($_SESSION['player']); // reindex
+if ($_GET['action'] === 'deal') {
+    $deck = createDeck();
+    $player = array_slice($deck, 0, 13);
+    $bot = array_slice($deck, 13, 13);
+    echo json_encode([
+        'player' => $player,
+        'bot' => $bot
+    ]);
+}
 
-// Giả lập lượt bot
-$botCard = array_pop($_SESSION['bot']);
-
-echo json_encode([
-    'message' => "Bạn đánh: {$card['value']}{$card['suit']}, Bot đánh: {$botCard['value']}{$botCard['suit']}",
-    'reload' => true
-]);
+if ($_GET['action'] === 'play') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $played = $data['cards'];
+    echo json_encode(['played' => $played]);
+}
