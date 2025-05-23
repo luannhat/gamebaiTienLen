@@ -269,9 +269,16 @@
             let botPlay = null;
 
             if (isFirstTurn) {
-                const card3S = botHand.find(c => c.rank === '3' && c.suit === '♠');
+                const card3S = botHand.find(c => c.rank.trim() === '3' && c.suit === '♠');
+
                 if (card3S) {
                     botPlay = [card3S];
+                } else {
+                    // Nếu không có 3♠ thì vẫn phải bỏ lượt
+                    document.getElementById('game-status').textContent = 'Bot không có 3♠, bỏ lượt.';
+                    isPlayerTurn = true;
+                    isFirstTurn = false;
+                    return;
                 }
             } else if (!lastPlayedCards) {
                 botPlay = [botHand[0]];
@@ -523,17 +530,85 @@
 
             return null;
         }
-        //hàm tổng quát để tìm chặn đôi 2
-        function counterDoubleTwo(hand, playedCards) {
-            if (playedCards.length !== 2 || playedCards[0].rank !== '2') return null;
+        //ktra 2 con 2
+        function countTwos(cards) {
+            return cards.filter(card => card.value === 15).length;
+        }
+        //hàm ktra 3 đôi thông
+        function hasThreeConsecutivePairs(cards) {
+            let counts = {};
+            cards.forEach(card => {
+                counts[card.value] = (counts[card.value] || 0) + 1;
+            });
 
-            const fourKind = findFourOfAKind(hand);
-            if (fourKind) return fourKind;
+            let values = Object.keys(counts).map(Number).sort((a, b) => a - b);
 
-            const threePairs = findThreeConsecutivePairs(hand);
-            if (threePairs) return threePairs;
+            for (let i = 0; i <= values.length - 3; i++) {
+                if (
+                    counts[values[i]] >= 2 &&
+                    counts[values[i + 1]] >= 2 &&
+                    counts[values[i + 2]] >= 2
+                ) {
+                    return true;
+                }
+            }
 
-            return null;
+            return false;
+        }
+        //hàm ktra 4 đôi thông
+        function hasFourConsecutivePairs(cards) {
+            let counts = {};
+            cards.forEach(card => {
+                counts[card.value] = (counts[card.value] || 0) + 1;
+            });
+
+            let values = Object.keys(counts).map(Number).sort((a, b) => a - b);
+
+            for (let i = 0; i <= values.length - 4; i++) {
+                if (
+                    counts[values[i]] >= 2 &&
+                    counts[values[i + 1]] >= 2 &&
+                    counts[values[i + 2]] >= 2 &&
+                    counts[values[i + 3]] >= 2
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        //hàm ktra khả năng chặn
+        function canBlockTwo(twoCards, yourCards) {
+            const count = countTwos(twoCards);
+
+            if (count === 1) {
+                return hasThreeConsecutivePairs(yourCards) || hasFourConsecutivePairs(yourCards);
+            }
+
+            if (count === 2) {
+                return hasFourConsecutivePairs(yourCards);
+            }
+
+            return false;
+        }
+        //hàm ktra tứ quý
+        function hasFourOfAKind(cards) {
+            let counts = {};
+            for (let card of cards) {
+                counts[card.value] = (counts[card.value] || 0) + 1;
+            }
+            return Object.values(counts).some(count => count === 4);
+        }
+
+        function canBlockTwoTwos(twoCards, yourCards) {
+            const count = countTwos(twoCards); // đếm số lá 2 trong bài người chơi đánh ra
+
+            if (count === 2) {
+                // phải chặn bằng 4 đôi thông hoặc tứ quý
+                return hasFourConsecutivePairs(yourCards) || hasFourOfAKind(yourCards);
+            }
+
+            return false;
         }
     </script>
 </body>
